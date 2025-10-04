@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الصندوق{% endblock %}
+
+{% block content %}
+<div class="cashbox-page">
+    <div class="page-header">
+        <h2>إدارة الصندوق</h2>
+        <div class="header-actions">
+            <button class="btn btn-primary" id="add-transaction-btn">
+                <i class="fas fa-plus"></i> إضافة معاملة
+            </button>
+            <button class="btn btn-secondary" id="export-cashbox">
+                <i class="fas fa-file-export"></i> تصدير تقرير
+            </button>
+        </div>
+    </div>
+
+    <!-- إحصائيات الصندوق -->
+    <div class="cashbox-stats">
+        <div class="stat-card">
+            <div class="stat-icon income">
+                <i class="fas fa-arrow-down"></i>
+            </div>
+            <div class="stat-info">
+                <h3>إجمالي الإيرادات</h3>
+                <span class="stat-number">0.00 د.ج</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon expense">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+            <div class="stat-info">
+                <h3>إجمالي المصروفات</h3>
+                <span class="stat-number">0.00 د.ج</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon balance">
+                <i class="fas fa-wallet"></i>
+            </div>
+            <div class="stat-info">
+                <h3>رصيد الصندوق</h3>
+                <span class="stat-number">0.00 د.ج</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- سجل المعاملات -->
+    <div class="transactions-section">
+        <h3>سجل المعاملات</h3>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>التاريخ</th>
+                        <th>النوع</th>
+                        <th>المبلغ</th>
+                        <th>البيان</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                    <tr>
+                        <td>{{ transaction.date }}</td>
+                        <td>
+                            <span class="transaction-type {{ transaction.type }}">
+                                {{ 'إيراد' if transaction.type == 'income' else 'مصروف' }}
+                            </span>
+                        </td>
+                        <td>{{ "%.2f"|format(transaction.amount) }} د.ج</td>
+                        <td>{{ transaction.description or '-' }}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-icon warning" title="تعديل">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-icon danger" title="حذف">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

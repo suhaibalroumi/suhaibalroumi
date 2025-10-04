@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل العميل - {{ customer.name }}{% endblock %}
+
+{% block content %}
+<div class="customer-detail-page">
+    <div class="page-header">
+        <div class="header-info">
+            <a href="{{ url_for('customers') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> رجوع
+            </a>
+            <h2>{{ customer.name }}</h2>
+            <span class="customer-balance {{ 'positive' if customer.balance > 0 else 'negative' if customer.balance < 0 else 'zero' }}">
+                {{ "%.2f"|format(customer.balance) }} د.ج
+            </span>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="addDebt({{ customer.id }})">
+                <i class="fas fa-plus-circle"></i> إضافة معاملة
+            </button>
+            <button class="btn btn-warning" onclick="editCustomer({{ customer.id }})">
+                <i class="fas fa-edit"></i> تعديل
+            </button>
+        </div>
+    </div>
+
+    <!-- معلومات العميل -->
+    <div class="customer-info-card">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>رقم الهاتف:</label>
+                <span>{{ customer.phone or 'غير محدد' }}</span>
+            </div>
+            <div class="info-item">
+                <label>التصنيف:</label>
+                <span class="category-badge {{ customer.category }}">{{ customer.category }}</span>
+            </div>
+            <div class="info-item">
+                <label>تاريخ الإضافة:</label>
+                <span>{{ customer.created_at[:10] }}</span>
+            </div>
+            <div class="info-item">
+                <label>الرصيد الحالي:</label>
+                <span class="balance {{ 'positive' if customer.balance > 0 else 'negative' if customer.balance < 0 else 'zero' }}">
+                    {{ "%.2f"|format(customer.balance) }} د.ج
+                </span>
+            </div>
+        </div>
+        {% if customer.notes %}
+        <div class="info-notes">
+            <label>ملاحظات:</label>
+            <p>{{ customer.notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- سجل المعاملات -->
+    <div class="transactions-section">
+        <h3>سجل المعاملات</h3>
+        
+        {% if transactions %}
+        <div class="transactions-list">
+            {% for transaction in transactions %}
+            <div class="transaction-item {{ 'taken' if transaction.debt_type == 'taken' else 'given' }}">
+                <div class="transaction-icon">
+                    <i class="fas {{ 'fa-arrow-down' if transaction.debt_type == 'taken' else 'fa-arrow-up' }}"></i>
+                </div>
+                <div class="transaction-info">
+                    <div class="transaction-amount">
+                        {{ "%.2f"|format(transaction.amount) }} د.ج
+                    </div>
+                    <div class="transaction-date">
+                        {{ transaction.date }}
+                    </div>
+                    {% if transaction.notes %}
+                    <div class="transaction-notes">
+                        {{ transaction.notes }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="transaction-type">
+                    <span class="type-badge {{ transaction.debt_type }}">
+                        {{ 'أخذت' if transaction.debt_type == 'taken' else 'أعطيت' }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-exchange-alt"></i>
+            <h4>لا توجد معاملات</h4>
+            <p>لم يتم تسجيل أي معاملات لهذا العميل بعد</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- نافذة إضافة معاملة -->
+<div id="add-transaction-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>إضافة معاملة جديدة</h3>
+            <span class="close">&times;</span>
+        </div>
+        <form id="transaction-form">
+            <input type="hidden" id="transaction-customer-id" value="{{ customer.id }}">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="transaction-type">نوع العملية *</label>
+                    <select id="transaction-type" required>
+                        <option value="taken">أخذت (استلمت مبلغ)</option>
+                        <option value="given">أعطيت (دفعت مبلغ)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="transaction-amount">المبلغ *</label>
+                    <input type="number" id="transaction-amount" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="transaction-date">تاريخ العملية *</label>
+                    <input type="date" id="transaction-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="transaction-notes">ملاحظات</label>
+                    <textarea id="transaction-notes" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary close-modal">إلغاء</button>
+                <button type="submit" class="btn btn-primary">حفظ المعاملة</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

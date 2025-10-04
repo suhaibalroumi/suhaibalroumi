@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>كناش - تسجيل الدخول</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="login-body">
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo">
+                <i class="fas fa-book"></i>
+                <h1>كناش</h1>
+            </div>
+            <p>نظام إدارة الديون والفواتير</p>
+        </div>
+
+        <form id="login-form" class="login-form">
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" id="username" name="username" placeholder="اسم المستخدم" required>
+            </div>
+            
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="password" name="password" placeholder="كلمة المرور" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-login">
+                <i class="fas fa-sign-in-alt"></i>
+                تسجيل الدخول
+            </button>
+        </form>
+
+        <div class="login-footer">
+            <p>نسخة تجريبية - متبقي <span id="trial-days">7</span> يوم</p>
+            <p class="demo-accounts">
+                <strong>حسابات تجريبية:</strong><br>
+                المستخدم: admin | كلمة المرور: admin123
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const button = document.querySelector('.btn-login');
+            
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التسجيل...';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    window.location.href = '/dashboard';
+                } else {
+                    alert(result.message);
+                    button.innerHTML = '<i class="fas fa-sign-in-alt"></i> تسجيل الدخول';
+                    button.disabled = false;
+                }
+            } catch (error) {
+                alert('حدث خطأ في الاتصال بالخادم');
+                button.innerHTML = '<i class="fas fa-sign-in-alt"></i> تسجيل الدخول';
+                button.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

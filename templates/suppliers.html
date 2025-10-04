@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الموردين{% endblock %}
+
+{% block content %}
+<div class="suppliers-page">
+    <div class="page-header">
+        <h2>إدارة الموردين</h2>
+        <div class="header-actions">
+            <button class="btn btn-primary" id="add-supplier-btn">
+                <i class="fas fa-truck-loading"></i> إضافة مورد
+            </button>
+            <button class="btn btn-secondary" id="export-suppliers">
+                <i class="fas fa-file-export"></i> تصدير
+            </button>
+        </div>
+    </div>
+
+    <!-- شريط البحث والتصفية -->
+    <div class="filters-bar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="supplier-search" placeholder="ابحث عن مورد...">
+        </div>
+        <select id="category-filter">
+            <option value="">جميع التصنيفات</option>
+            {% for category in categories %}
+            <option value="{{ category.name }}">{{ category.name }}</option>
+            {% endfor %}
+        </select>
+        <select id="balance-filter">
+            <option value="">جميع الأرصدة</option>
+            <option value="positive">مدينون</option>
+            <option value="negative">دائنون</option>
+            <option value="zero">بدون رصيد</option>
+        </select>
+    </div>
+
+    <!-- جدول الموردين -->
+    <div class="table-container">
+        <table class="data-table" id="suppliers-table">
+            <thead>
+                <tr>
+                    <th>الاسم</th>
+                    <th>الهاتف</th>
+                    <th>التصنيف</th>
+                    <th>الرصيد</th>
+                    <th>آخر معاملة</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for supplier in suppliers %}
+                <tr data-supplier-id="{{ supplier.id }}">
+                    <td>
+                        <div class="supplier-info">
+                            <strong>{{ supplier.name }}</strong>
+                            {% if supplier.notes %}
+                            <small class="notes">{{ supplier.notes }}</small>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>{{ supplier.phone or '-' }}</td>
+                    <td>
+                        <span class="category-badge {{ supplier.category }}">
+                            {{ supplier.category }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="balance {{ 'positive' if supplier.balance > 0 else 'negative' if supplier.balance < 0 else 'zero' }}">
+                            {{ "%.2f"|format(supplier.balance) }} د.ج
+                        </span>
+                    </td>
+                    <td>{{ supplier.created_at[:10] }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-icon success" onclick="viewSupplier({{ supplier.id }})" title="عرض التفاصيل">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn-icon primary" onclick="addSupplierDebt({{ supplier.id }})" title="إضافة دين">
+                                <i class="fas fa-plus-circle"></i>
+                            </button>
+                            <button class="btn-icon warning" onclick="editSupplier({{ supplier.id }})" title="تعديل">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon danger" onclick="deleteSupplier({{ supplier.id }})" title="حذف">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if not suppliers %}
+        <div class="empty-state">
+            <i class="fas fa-truck"></i>
+            <h3>لا يوجد موردين</h3>
+            <p>ابدأ بإضافة مورديك الأول</p>
+            <button class="btn btn-primary" id="add-first-supplier">
+                <i class="fas fa-truck-loading"></i> إضافة أول مورد
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- نوافذ منبثقة مشابهة للعملاء -->
+{% include 'modals/supplier_modals.html' %}
+{% endblock %}

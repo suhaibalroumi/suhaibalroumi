@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="page-header">
+        <h2>لوحة التحكم</h2>
+        <div class="header-actions">
+            <button class="btn btn-primary" id="quick-action">
+                <i class="fas fa-plus"></i> إضافة سريعة
+            </button>
+        </div>
+    </div>
+
+    <!-- بطاقات الإحصائيات -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon customers">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-info">
+                <h3>إجمالي العملاء</h3>
+                <span class="stat-number">{{ stats.customers_count }}</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon suppliers">
+                <i class="fas fa-truck"></i>
+            </div>
+            <div class="stat-info">
+                <h3>إجمالي الموردين</h3>
+                <span class="stat-number">{{ stats.suppliers_count }}</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon debt">
+                <i class="fas fa-hand-holding-usd"></i>
+            </div>
+            <div class="stat-info">
+                <h3>ديون العملاء</h3>
+                <span class="stat-number">{{ "%.2f"|format(stats.customers_debt) }} د.ج</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon credit">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="stat-info">
+                <h3>ديون الموردين</h3>
+                <span class="stat-number">{{ "%.2f"|format(stats.suppliers_debt) }} د.ج</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- الاقتراحات الذكية -->
+    <div class="suggestions-section">
+        <h3>اقتراحات ذكية</h3>
+        <div class="suggestions-container">
+            <div class="suggestion-item">
+                <i class="fas fa-lightbulb"></i>
+                <p>لديك {{ stats.customers_count }} عميل يمكنك متابعة مدفوعاتهم</p>
+            </div>
+            <div class="suggestion-item">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>إجمالي الديون: {{ "%.2f"|format(stats.customers_debt + stats.suppliers_debt) }} د.ج</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- العملاء والموردين الحديثين -->
+    <div class="recent-section">
+        <div class="recent-customers">
+            <h3>آخر العملاء</h3>
+            <div class="recent-list">
+                {% for customer in customers[:5] %}
+                <div class="recent-item">
+                    <span class="name">{{ customer.name }}</span>
+                    <span class="balance {{ 'positive' if customer.balance > 0 else 'negative' if customer.balance < 0 else 'zero' }}">
+                        {{ "%.2f"|format(customer.balance) }} د.ج
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="recent-suppliers">
+            <h3>آخر الموردين</h3>
+            <div class="recent-list">
+                {% for supplier in suppliers[:5] %}
+                <div class="recent-item">
+                    <span class="name">{{ supplier.name }}</span>
+                    <span class="balance {{ 'positive' if supplier.balance > 0 else 'negative' if supplier.balance < 0 else 'zero' }}">
+                        {{ "%.2f"|format(supplier.balance) }} د.ج
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نافذة الإضافة السريعة -->
+<div id="quick-add-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>إضافة سريعة</h3>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="quick-actions">
+                <button class="quick-btn" data-type="customer">
+                    <i class="fas fa-user-plus"></i>
+                    <span>إضافة عميل</span>
+                </button>
+                <button class="quick-btn" data-type="supplier">
+                    <i class="fas fa-truck-loading"></i>
+                    <span>إضافة مورد</span>
+                </button>
+                <button class="quick-btn" data-type="debt">
+                    <i class="fas fa-money-bill"></i>
+                    <span>إضافة دين</span>
+                </button>
+                <button class="quick-btn" data-type="payment">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    <span>تسديد دين</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

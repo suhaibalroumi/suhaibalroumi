@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة العملاء{% endblock %}
+
+{% block content %}
+<div class="customers-page">
+    <div class="page-header">
+        <h2>إدارة العملاء</h2>
+        <div class="header-actions">
+            <button class="btn btn-primary" id="add-customer-btn">
+                <i class="fas fa-user-plus"></i> إضافة عميل
+            </button>
+            <button class="btn btn-secondary" id="export-customers">
+                <i class="fas fa-file-export"></i> تصدير
+            </button>
+        </div>
+    </div>
+
+    <!-- شريط البحث والتصفية -->
+    <div class="filters-bar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="customer-search" placeholder="ابحث عن عميل...">
+        </div>
+        <select id="category-filter">
+            <option value="">جميع التصنيفات</option>
+            {% for category in categories %}
+            <option value="{{ category.name }}">{{ category.name }}</option>
+            {% endfor %}
+        </select>
+        <select id="balance-filter">
+            <option value="">جميع الأرصدة</option>
+            <option value="positive">مدينون</option>
+            <option value="negative">دائنون</option>
+            <option value="zero">بدون رصيد</option>
+        </select>
+    </div>
+
+    <!-- جدول العملاء -->
+    <div class="table-container">
+        <table class="data-table" id="customers-table">
+            <thead>
+                <tr>
+                    <th>الاسم</th>
+                    <th>الهاتف</th>
+                    <th>التصنيف</th>
+                    <th>الرصيد</th>
+                    <th>آخر معاملة</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr data-customer-id="{{ customer.id }}">
+                    <td>
+                        <div class="customer-info">
+                            <strong>{{ customer.name }}</strong>
+                            {% if customer.notes %}
+                            <small class="notes">{{ customer.notes }}</small>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>{{ customer.phone or '-' }}</td>
+                    <td>
+                        <span class="category-badge {{ customer.category }}">
+                            {{ customer.category }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="balance {{ 'positive' if customer.balance > 0 else 'negative' if customer.balance < 0 else 'zero' }}">
+                            {{ "%.2f"|format(customer.balance) }} د.ج
+                        </span>
+                    </td>
+                    <td>{{ customer.created_at[:10] }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-icon success" onclick="viewCustomer({{ customer.id }})" title="عرض التفاصيل">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn-icon primary" onclick="addCustomerDebt({{ customer.id }})" title="إضافة دين">
+                                <i class="fas fa-plus-circle"></i>
+                            </button>
+                            <button class="btn-icon warning" onclick="editCustomer({{ customer.id }})" title="تعديل">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon danger" onclick="deleteCustomer({{ customer.id }})" title="حذف">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if not customers %}
+        <div class="empty-state">
+            <i class="fas fa-users"></i>
+            <h3>لا يوجد عملاء</h3>
+            <p>ابدأ بإضافة عملائك الأول</p>
+            <button class="btn btn-primary" id="add-first-customer">
+                <i class="fas fa-user-plus"></i> إضافة أول عميل
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- نافذة إضافة عميل -->
+<div id="add-customer-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>إضافة عميل جديد</h3>
+            <span class="close">&times;</span>
+        </div>
+        <form id="customer-form">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="customer-name">اسم العميل *</label>
+                    <input type="text" id="customer-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="customer-phone">رقم الهاتف</label>
+                    <input type="tel" id="customer-phone">
+                </div>
+                <div class="form-group">
+                    <label for="customer-category">التصنيف</label>
+                    <select id="customer-category">
+                        {% for category in categories %}
+                        <option value="{{ category.name }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="customer-notes">ملاحظات</label>
+                    <textarea id="customer-notes" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary close-modal">إلغاء</button>
+                <button type="submit" class="btn btn-primary">حفظ العميل</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- نافذة تعديل عميل -->
+<div id="edit-customer-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>تعديل بيانات العميل</h3>
+            <span class="close">&times;</span>
+        </div>
+        <form id="edit-customer-form">
+            <input type="hidden" id="edit-customer-id">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-customer-name">اسم العميل *</label>
+                    <input type="text" id="edit-customer-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-customer-phone">رقم الهاتف</label>
+                    <input type="tel" id="edit-customer-phone">
+                </div>
+                <div class="form-group">
+                    <label for="edit-customer-category">التصنيف</label>
+                    <select id="edit-customer-category">
+                        {% for category in categories %}
+                        <option value="{{ category.name }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-customer-notes">ملاحظات</label>
+                    <textarea id="edit-customer-notes" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary close-modal">إلغاء</button>
+                <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- نافذة إضافة دين -->
+<div id="add-debt-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="debt-modal-title">إضافة دين</h3>
+            <span class="close">&times;</span>
+        </div>
+        <form id="debt-form">
+            <input type="hidden" id="debt-customer-id">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="debt-type">نوع العملية *</label>
+                    <select id="debt-type" required>
+                        <option value="taken">أخذت (استلمت مبلغ)</option>
+                        <option value="given">أعطيت (دفعت مبلغ)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="debt-amount">المبلغ *</label>
+                    <input type="number" id="debt-amount" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="debt-date">تاريخ العملية *</label>
+                    <input type="date" id="debt-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="debt-notes">ملاحظات</label>
+                    <textarea id="debt-notes" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary close-modal">إلغاء</button>
+                <button type="submit" class="btn btn-primary">حفظ العملية</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// دوال JavaScript للعملاء
+function viewCustomer(id) {
+    window.location.href = `/customer/${id}`;
+}
+
+function addCustomerDebt(id) {
+    const row = document.querySelector(`tr[data-customer-id="${id}"]`);
+    const customerName = row.querySelector('td:first-child strong').textContent;
+    
+    document.getElementById('debt-modal-title').textContent = `إضافة دين - ${customerName}`;
+    document.getElementById('debt-customer-id').value = id;
+    document.getElementById('debt-form').reset();
+    document.getElementById('debt-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('add-debt-modal').style.display = 'flex';
+}
+
+async function editCustomer(id) {
+    try {
+        const response = await fetch(`/api/get_customer/${id}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            const customer = result.customer;
+            document.getElementById('edit-customer-id').value = customer.id;
+            document.getElementById('edit-customer-name').value = customer.name;
+            document.getElementById('edit-customer-phone').value = customer.phone || '';
+            document.getElementById('edit-customer-category').value = customer.category;
+            document.getElementById('edit-customer-notes').value = customer.notes || '';
+            
+            document.getElementById('edit-customer-modal').style.display = 'flex';
+        } else {
+            alert(result.message);
+        }
+    } catch (error) {
+        alert('حدث خطأ في جلب بيانات العميل');
+    }
+}
+
+async function deleteCustomer(id) {
+    if (confirm('هل أنت متأكد من حذف هذا العميل؟ سيتم حذف جميع معاملاته أيضاً.')) {
+        try {
+            const response = await fetch(`/api/delete_customer/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('تم حذف العميل بنجاح');
+                window.location.reload();
+            } else {
+                alert('حدث خطأ أثناء حذف العميل');
+            }
+        } catch (error) {
+            alert('حدث خطأ في الاتصال بالخادم');
+        }
+    }
+}
+</script>
+{% endblock %}

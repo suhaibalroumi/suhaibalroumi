@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الموردين{% endblock %}
+
+{% block content %}
+<div class="suppliers-page">
+    <div class="page-header">
+        <h2>إدارة الموردين</h2>
+        <div class="header-actions">
+            <button class="btn btn-primary" id="add-supplier-btn">
+                <i class="fas fa-truck-loading"></i> إضافة مورد
+            </button>
+            <button class="btn btn-secondary" id="export-suppliers">
+                <i class="fas fa-file-export"></i> تصدير
+            </button>
+        </div>
+    </div>
+
+    <!-- شريط البحث والتصفية -->
+    <div class="filters-bar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="supplier-search" placeholder="ابحث عن مورد...">
+        </div>
+        <select id="category-filter">
+            <option value="">جميع التصنيفات</option>
+            {% for category in categories %}
+            <option value="{{ category.name }}">{{ category.name }}</option>
+            {% endfor %}
+        </select>
+        <select id="balance-filter">
+            <option value="">جميع الأرصدة</option>
+            <option value="positive">مدينون</option>
+            <option value="negative">دائنون</option>
+            <option value="zero">بدون رصيد</option>
+        </select>
+    </div>
+
+    <!-- جدول الموردين -->
+    <div class="table-container">
+        <table class="data-table" id="suppliers-table">
+            <thead>
+                <tr>
+                    <th>الاسم</th>
+                    <th>الهاتف</th>
+                    <th>التصنيف</th>
+                    <th>الرصيد</th>
+                    <th>آخر معاملة</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for supplier in suppliers %}
+                <tr data-supplier-id="{{ supplier.id }}">
+                    <td>
+                        <div class="supplier-info">
+                            <strong>{{ supplier.name }}</strong>
+                            {% if supplier.notes %}
+                            <small class="notes">{{ supplier.notes }}</small>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>{{ supplier.phone or '-' }}</td>
+                    <td>
+                        <span class="category-badge {{ supplier.category }}">
+                            {{ supplier.category }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="balance {{ 'positive' if supplier.balance > 0 else 'negative' if supplier.balance < 0 else 'zero' }}">
+                            {{ "%.2f"|format(supplier.balance) }} د.ج
+                        </span>
+                    </td>
+                    <td>{{ supplier.created_at[:10] }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-icon success" onclick="viewSupplier({{ supplier.id }})" title="عرض التفاصيل">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn-icon primary" onclick="addSupplierDebt({{ supplier.id }})" title="إضافة دين">
+                                <i class="fas fa-plus-circle"></i>
+                            </button>
+                            <button class="btn-icon warning" onclick="editSupplier({{ supplier.id }})" title="تعديل">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon danger" onclick="deleteSupplier({{ supplier.id }})" title="حذف">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if not suppliers %}
+        <div class="empty-state">
+            <i class="fas fa-truck"></i>
+            <h3>لا يوجد موردين</h3>
+            <p>ابدأ بإضافة مورديك الأول</p>
+            <button class="btn btn-primary" id="add-first-supplier">
+                <i class="fas fa-truck-loading"></i> إضافة أول مورد
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- نافذة إضافة مورد -->
+<div id="add-supplier-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>إضافة مورد جديد</h3>
+            <span class="close">&times;</span>
+        </div>
+        <form id="supplier-form">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="supplier-name">اسم المورد *</label>
+                    <input type="text" id="supplier-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="supplier-phone">رقم الهاتف</label>
+                    <input type="tel" id="supplier-phone">
+                </div>
+                <div class="form-group">
+                    <label for="supplier-category">التصنيف</label>
+                    <select id="supplier-category">
+                        {% for category in categories %}
+                        <option value="{{ category.name }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="supplier-notes">ملاحظات</label>
+                    <textarea id="supplier-notes" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary close-modal">إلغاء</button>
+                <button type="submit" class="btn btn-primary">حفظ المورد</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- نافذة تعديل مورد -->
+<div id="edit-supplier-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>تعديل بيانات المورد</h3>
+            <span class="close">&times;</span>
+        </div>
+        <form id="edit-supplier-form">
+            <input type="hidden" id="edit-supplier-id">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-supplier-name">اسم المورد *</label>
+                    <input type="text" id="edit-supplier-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-supplier-phone">رقم الهاتف</label>
+                    <input type="tel" id="edit-supplier-phone">
+                </div>
+                <div class="form-group">
+                    <label for="edit-supplier-category">التصنيف</label>
+                    <select id="edit-supplier-category">
+                        {% for category in categories %}
+                        <option value="{{ category.name }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-supplier-notes">ملاحظات</label>
+                    <textarea id="edit-supplier-notes" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary close-modal">إلغاء</button>
+                <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- نافذة إضافة دين للمورد -->
+<div id="add-supplier-debt-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="supplier-debt-modal-title">إضافة دين للمورد</h3>
+            <span class="close">&times;</span>
+        </div>
+        <form id="supplier-debt-form">
+            <input type="hidden" id="supplier-debt-id">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="supplier-debt-type">نوع العملية *</label>
+                    <select id="supplier-debt-type" required>
+                        <option value="taken">أخذت (استلمت بضاعة)</option>
+                        <option value="given">أعطيت (دفعت مبلغ)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="supplier-debt-amount">المبلغ *</label>
+                    <input type="number" id="supplier-debt-amount" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="supplier-debt-date">تاريخ العملية *</label>
+                    <input type="date" id="supplier-debt-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="supplier-debt-notes">ملاحظات</label>
+                    <textarea id="supplier-debt-notes" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary close-modal">إلغاء</button>
+                <button type="submit" class="btn btn-primary">حفظ العملية</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// دوال JavaScript للموردين
+function viewSupplier(id) {
+    window.location.href = `/supplier/${id}`;
+}
+
+function addSupplierDebt(id) {
+    const row = document.querySelector(`tr[data-supplier-id="${id}"]`);
+    const supplierName = row.querySelector('td:first-child strong').textContent;
+    
+    document.getElementById('supplier-debt-modal-title').textContent = `إضافة دين - ${supplierName}`;
+    document.getElementById('supplier-debt-id').value = id;
+    document.getElementById('supplier-debt-form').reset();
+    document.getElementById('supplier-debt-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('add-supplier-debt-modal').style.display = 'flex';
+}
+
+async function editSupplier(id) {
+    try {
+        const response = await fetch(`/api/get_supplier/${id}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            const supplier = result.supplier;
+            document.getElementById('edit-supplier-id').value = supplier.id;
+            document.getElementById('edit-supplier-name').value = supplier.name;
+            document.getElementById('edit-supplier-phone').value = supplier.phone || '';
+            document.getElementById('edit-supplier-category').value = supplier.category;
+            document.getElementById('edit-supplier-notes').value = supplier.notes || '';
+            
+            document.getElementById('edit-supplier-modal').style.display = 'flex';
+        } else {
+            alert(result.message);
+        }
+    } catch (error) {
+        alert('حدث خطأ في جلب بيانات المورد');
+    }
+}
+
+async function deleteSupplier(id) {
+    if (confirm('هل أنت متأكد من حذف هذا المورد؟ سيتم حذف جميع معاملاته أيضاً.')) {
+        try {
+            const response = await fetch(`/api/delete_supplier/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('تم حذف المورد بنجاح');
+                window.location.reload();
+            } else {
+                alert('حدث خطأ أثناء حذف المورد');
+            }
+        } catch (error) {
+            alert('حدث خطأ في الاتصال بالخادم');
+        }
+    }
+}
+</script>
+{% endblock %}
